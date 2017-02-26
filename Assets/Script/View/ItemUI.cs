@@ -8,18 +8,8 @@ public class ItemUI : MonoBehaviour {
     public Text ItemName;
 
     public void UpdateItem(string name)
-    {
-    
+    {    
         ItemName.text = name;
     }
 
-
-	void Start () {
-		
-	}
-	
-	// Update is called once per frame
-	void Update () {
-		
-	}
 }

@@ -20,6 +20,61 @@ public class KnapsqackManager : MonoBehaviour
         _instance = this;//单例  
         GridUIScript.onEnter += GridUI_OnEnter;
         GridUIScript.onExit += GridUI_OnExit;
+
+        GridUIScript.onLeftBeginDrag += GridUIItem_onLeftBeginDrag;
+        GridUIScript.onLeftEndDrag += GridUIItem_onLeftEndDrag;
+    }
+
+    public bool isDrag = false;
+    public DragItemUIScript dragItemUIScript;
+    private void GridUIItem_onLeftEndDrag(Transform prevTransform,Transform enterTransform)
+    {
+        //ragItemUIScript
+        isDrag = false;
+        dragItemUIScript.IsShowDragItem(false);
+
+        if (enterTransform == null)//拖到UI外面,扔了
+        {
+            ItemModel.DeleteItem(prevTransform.name);
+            Debug.Log("扔东西");
+        }
+        //1.拖到另一地方,
+   else if (enterTransform.tag == "Grid")
+        {//是否子物体有值
+            if (enterTransform.childCount == 0)
+            {
+                Item item = ItemModel.GetItem(prevTransform.name);
+                createNewItem(item,enterTransform);
+                ItemModel.DeleteItem(prevTransform.name);
+            }
+            else
+            {
+                Destroy(enterTransform.GetChild(0).gameObject);
+                Item prevGridItem = ItemModel.GetItem(prevTransform.name);
+                Item enterGridItem = ItemModel.GetItem(enterTransform.name);
+
+                this.createNewItem(prevGridItem,enterTransform);
+                this.createNewItem(enterGridItem, prevTransform);
+            }
+        }
+        else//拖到UI的其他 的地方
+        {
+            Item item = ItemModel.GetItem(prevTransform.name);
+            createNewItem(item, prevTransform);
+        }
+    }
+
+    private void GridUIItem_onLeftBeginDrag(Transform gridTransform)
+    {
+        if (gridTransform.childCount == 0) return;
+        else
+        {
+            Item item = ItemModel.GetItem(gridTransform.name);
+            dragItemUIScript.UpdateItem(item.Name);
+            Destroy(gridTransform.GetChild(0).gameObject);
+         //   ItemModel.DeleteItem(gridTransform.name);
+            isDrag = true;
+        }
     }
 
     public void GridUI_OnEnter(Transform gridTransform)
@@ -27,15 +82,16 @@ public class KnapsqackManager : MonoBehaviour
         Item item = ItemModel.GetItem(gridTransform.name);
 
         if (item == null)
-        {
             return;
-        }
+
         toolKitUI.updateText(GetToolTipText(item));
+        isShow = true;
     }
 
     public void GridUI_OnExit()
     {
-
+        toolKitUI.IsShowToolKit(false);
+        isShow = false;
     }
 
 
@@ -79,47 +135,73 @@ public class KnapsqackManager : MonoBehaviour
             return;
         }
         Item temp = ItemList[itemId];
-        GameObject itemPrefab = Resources.Load<GameObject>("Prefabs/Item");
-        itemPrefab.GetComponent<ItemUI>().UpdateItem(temp.Name);
-        GameObject itemGo = GameObject.Instantiate(itemPrefab);
-        itemGo.transform.SetParent(emptyGird);
-        itemGo.transform.localPosition = Vector3.zero;
-        itemGo.transform.localScale = Vector3.one;
+        createNewItem(temp,emptyGird);
 
-        ItemModel.StoreItem(emptyGird.name, temp);
     }
 
     public string GetToolTipText(Item item)
     {
         if (item == null) return "";
 
-        StringBuilder sb= new StringBuilder();
-        sb.AppendFormat("<color=red>{0}</color>\n\n",item.Name);
-        switch (item.ItemType)  
+        StringBuilder sb = new StringBuilder();
+        sb.AppendFormat("<color=red>{0}</color>\n\n", item.Name);
+        switch (item.ItemType)
         {
             case "Armor":
                 {
                     Armor aror = item as Armor;
-                    sb.AppendFormat("力量:{0}\n防御:{1}\n敏捷:{2}\n\n",aror.Power,aror.Defend,aror.Agility);
-                     }
+                    sb.AppendFormat("力量:{0}\n防御:{1}\n敏捷:{2}\n\n", aror.Power, aror.Defend, aror.Agility);
+                }
                 break;
             case "Consumable":
                 {
                     Consumable consu = item as Consumable;
-                    sb.AppendFormat("HP:{0}\nMP:{1}\n\n", consu.BackHp,consu.BackMp);
+                    sb.AppendFormat("HP:{0}\nMP:{1}\n\n", consu.BackHp, consu.BackMp);
                 }
                 break;
             case "Weapon":
                 {
                     Weapon we = item as Weapon;
-                    sb.AppendFormat("攻击:{0}\n\n",we.Damage);
+                    sb.AppendFormat("攻击:{0}\n\n", we.Damage);
                 }
                 break;
             default:
                 break;
         }
-        sb.AppendFormat("<size=25><color=white>购买价格:{0}\n出售价格:{1}</color></size>\n\n<color=yellow><size=20>描述:{2}</size></color>",item.BuyPrice,item.SellPrice,item.Description);
+        sb.AppendFormat("<size=25><color=white>购买价格:{0}\n出售价格:{1}</color></size>\n\n<color=yellow><size=20>描述:{2}</size></color>", item.BuyPrice, item.SellPrice, item.Description);
         return sb.ToString();
     }
 
+    public bool isShow = false;
+    void Update()
+    {
+        Vector2 position;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(GameObject.Find("Canvas").transform as RectTransform, Input.mousePosition, null, out position);
+
+              if (isDrag)
+        {
+            dragItemUIScript.IsShowDragItem(true);
+            dragItemUIScript.SetLocalPosition(position);
+        }
+              else if (isShow)
+        {
+            toolKitUI.IsShowToolKit(true);//true为显示
+            toolKitUI.SetLocalPosition(position);
+        }
+   
+    }
+
+    private void createNewItem(Item item, Transform emptyGird)
+    {
+        if (item == null) return;
+        GameObject itemPrefab = Resources.Load<GameObject>("Prefabs/Item");
+        itemPrefab.GetComponent<ItemUI>().UpdateItem(item.Name);
+        GameObject itemGo = GameObject.Instantiate(itemPrefab);
+        itemGo.transform.SetParent(emptyGird);
+        itemGo.transform.localPosition = Vector3.zero;
+        itemGo.transform.localScale = Vector3.one;
+
+
+        ItemModel.StoreItem(emptyGird.name, item);//存储数据 
+    }
 }

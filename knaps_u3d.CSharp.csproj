@@ -82,6 +82,7 @@
     <Compile Include="Assets\Script\InputDetector.cs" />
     <Compile Include="Assets\Script\KnapsqackManager.cs" />
     <Compile Include="Assets\Script\Model\ItemModel.cs" />
+    <Compile Include="Assets\Script\View\DragItemUIScript.cs" />
     <Compile Include="Assets\Script\View\GridPanelUI.cs" />
     <Compile Include="Assets\Script\View\GridUIScript.cs" />
     <Compile Include="Assets\Script\View\ItemUI.cs" />
